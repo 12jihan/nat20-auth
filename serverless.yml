@@ -14,6 +14,7 @@ provider:
         description: 'My User Authentication Service'
 
 package:
+    individually: true
     exclude:
         - '**/**' # Excludes everything by default
         - '!src/**' # Then include only what you need
@@ -26,14 +27,3 @@ functions:
             - http:
                   path: users
                   method: post
-                  cors:
-                      origin: '*'
-                      allowCredentials: false
-
-    # get a user here through cognito
-    # get_user:
-    #     handler: auth.get_user_account
-    #     events:
-    #         - http:
-    #               path: /users/{id}
-    #               method: get
