@@ -14,8 +14,7 @@ provider:
         description: 'My User Authentication Service'
 
 package:
-    include:
-        - auth.ts
+    individually: true
 
 functions:
     # creating a user here through cognito
@@ -23,8 +22,11 @@ functions:
         handler: auth.create_account
         events:
             - http:
-                  path: /users
-                  method: put
+                  path: users
+                  method: post
+                  cors:
+                      origin: '*'
+                      allowCredentials: false
 
     # get a user here through cognito
     # get_user:
