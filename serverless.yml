@@ -6,12 +6,16 @@ service: nat20
 provider:
     name: aws
     runtime: nodejs20.x
-    region: us-east-1
-    memorySize: 128
-    timeout: 30
+    # region: us-east-1
+    # memorySize: 128
+    # timeout: 30
     apiGateway:
         restApi:
         description: 'My User Authentication Service'
+
+package:
+    include:
+        - auth.ts
 
 functions:
     # creating a user here through cognito
@@ -23,9 +27,9 @@ functions:
                   method: put
 
     # get a user here through cognito
-    get_user:
-        handler: auth.get_user_account
-        events:
-            - http:
-                  path: /users/{id}
-                  method: get
+    # get_user:
+    #     handler: auth.get_user_account
+    #     events:
+    #         - http:
+    #               path: /users/{id}
+    #               method: get
