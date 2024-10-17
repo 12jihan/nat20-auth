@@ -14,12 +14,14 @@ provider:
         description: 'My User Authentication Service'
 
 package:
-    individually: true
+    exclude:
+        - '**/**' # Excludes everything by default
+        - '!src/**' # Then include only what you need
 
 functions:
     # creating a user here through cognito
     create_user:
-        handler: auth.create_account
+        handler: src/auth_handlers/auth.create_account
         events:
             - http:
                   path: users
