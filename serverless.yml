@@ -1,0 +1,31 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: 12jikan
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: nat20
+
+provider:
+    name: aws
+    runtime: nodejs20.x
+    region: us-east-1
+    memorySize: 128
+    timeout: 30
+    apiGateway:
+        restApi:
+        description: 'My User Authentication Service'
+
+functions:
+    # creating a user here through cognito
+    create_user:
+        handler: auth.create_account
+        events:
+            - http:
+                  path: /users
+                  method: put
+
+    # get a user here through cognito
+    get_user:
+        handler: auth.get_user_account
+        events:
+            - http:
+                  path: /users/{id}
+                  method: get
