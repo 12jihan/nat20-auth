@@ -1,6 +1,4 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: 12jikan
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: nat20
 
 provider:
@@ -14,16 +12,17 @@ provider:
         description: 'My User Authentication Service'
 
 package:
-    individually: true
+    individually: false
     exclude:
         - '**/**' # Excludes everything by default
         - '!src/**' # Then include only what you need
 
 functions:
-    # creating a user here through cognito
     create_user:
+        description: 'Create a new user'
         handler: src/auth_handlers/auth.create_account
         events:
             - http:
+                  cors: true
                   path: users
                   method: post
