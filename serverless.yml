@@ -26,3 +26,5 @@ functions:
                   cors: true
                   path: users
                   method: post
+
+    

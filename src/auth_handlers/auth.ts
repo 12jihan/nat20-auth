@@ -1,11 +1,6 @@
 import { Amplify, ResourcesConfig } from "aws-amplify";
-import { signUp } from "aws-amplify/auth";
-
-
-const header = new Headers({
-  "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "*",
-});
+// import { Amplify, ResourcesConfig } from "aws-amplify";
+import { signIn, signUp } from "aws-amplify/auth";
 
 const aws_config: ResourcesConfig = {
   Auth: {
@@ -16,53 +11,82 @@ const aws_config: ResourcesConfig = {
     },
   },
 };
-
 Amplify.configure(aws_config);
 
+const header = new Headers({
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+});
+
+interface SignUpBody {
+  username: string;
+  password: string;
+  email: string;
+  phone_number: string;
+};
+
+interface User {
+  id: string;
+  username: string;
+  password: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+};
+
+let response: any = undefined;
+let _user_info: any;
+
 export const create_account = async (event) => {
-  const _user_info = event;
-  console.log("user_info: ", _user_info);
   try {
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: 'invalid request body' + process.env
+        })
+      }
+    }
+
+    _user_info = JSON.parse(event['body'])['user_info'];
     const user = await signUp({
       username: _user_info.username,
       password: _user_info.password,
       options: {
         userAttributes: {
           email: _user_info.email,
-          // first_name: _user_info.first_name,
-          // last_name: _user_info.last_name,
+          phone_number: _user_info.phone_number ? _user_info.phone_number : '',
         },
       }
-    }).then((data) => {
-      
     });
 
-    const response = {
+    console.log("response", response);
+    return {
       statusCode: 200,
       headers: header,
-      body: event,
+      body: JSON.parse(event['body'])['user_info'],
       data: user
     };
-    // return user;
-
-    return response;
   } catch (error) {
+    console.log("error message:", error);
 
-    const response = {
+    return {
       statusCode: 500,
-      headers: header,
-      body: event,
-      error: error
+      body: JSON.stringify({
+        message: 'Error during sign-up process'
+      })
     };
-
-    return response;
   }
 };
 
-function create_body(_event) {
-  const _body = JSON.stringify({
-    event: _event.body,
-  })
+// export const login = async (event) => {
+//   try {
+//     signIn({
+//       username: '',
+//       password: '',
+//     })
+//   } catch (e) {
 
-  return _body;
-}
+//   }
+// }
