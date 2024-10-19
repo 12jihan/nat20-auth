@@ -1,7 +1,10 @@
 import { Amplify, ResourcesConfig } from "aws-amplify";
-// import { Amplify, ResourcesConfig } from "aws-amplify";
 import { signIn, signUp } from "aws-amplify/auth";
+import dotenv from "dotenv";
+dotenv.config();
 
+
+const user_pool_id = process.env
 const aws_config: ResourcesConfig = {
   Auth: {
     Cognito: {
@@ -44,7 +47,7 @@ export const create_account = async (event) => {
       return {
         statusCode: 400,
         body: JSON.stringify({
-          message: 'invalid request body' + process.env
+          message: 'invalid request body'
         })
       }
     }

@@ -16,6 +16,7 @@ package:
     exclude:
         - '**/**' # Excludes everything by default
         - '!src/**' # Then include only what you need
+        - '!.env'
 
 functions:
     create_user:
@@ -26,5 +27,3 @@ functions:
                   cors: true
                   path: users
                   method: post
-
-    
