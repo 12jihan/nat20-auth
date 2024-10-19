@@ -4,8 +4,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 
-const user_pool_id = process.env.USER_POOL_ID;
-const user_pool_client_id = process.env.USER_POOL_CLIENT_ID;
+const user_pool_id: string = process.env.USER_POOL_ID!;
+const user_pool_client_id: string = process.env.USER_POOL_CLIENT_ID!;
 console.log(
   "Testing to see if this works at all:\n",
   user_pool_id,
@@ -15,8 +15,8 @@ console.log(
 const aws_config: ResourcesConfig = {
   Auth: {
     Cognito: {
-      userPoolId: user_pool_id!,
-      userPoolClientId: user_pool_client_id!,
+      userPoolId: user_pool_id,
+      userPoolClientId: user_pool_client_id,
       signUpVerificationMethod: 'code',
     },
   },
