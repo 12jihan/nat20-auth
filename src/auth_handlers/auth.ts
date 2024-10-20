@@ -8,7 +8,7 @@ const user_pool_id: string = process.env.USER_POOL_ID!;
 const user_pool_client_id: string = process.env.USER_POOL_CLIENT_ID!;
 console.log(
   "Testing to see if this works at all:\n",
-  user_pool_id,
+  user_pool_id + "\n",
   user_pool_client_id
 );
 
@@ -50,7 +50,9 @@ let _user_info: any;
 
 export const create_account = async (event) => {
   try {
+    console.log("body:\n", event.body);
     if (!event.body) {
+      console.log("failed body:\n", event.body);
       return {
         statusCode: 400,
         body: JSON.stringify({
