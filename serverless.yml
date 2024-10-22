@@ -8,7 +8,7 @@ provider:
     memorySize: 128
     timeout: 30
     apiGateway:
-        restApi:
+        restApi: "asdasd"
         description: 'My User Authentication Service'
 
 package:
@@ -27,3 +27,11 @@ functions:
                   cors: true
                   path: users
                   method: post
+
+    confirm_user:
+        description: 'Confirm a new user'
+        handler: src/auth_handlers/auth.confirm_user
+        events:
+            - cognitoUserPool:
+                  pool: Nat20-Pool
+                  trigger: PreSignUp
