@@ -1,5 +1,5 @@
 import { Amplify, ResourcesConfig } from "aws-amplify";
-import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput } from "aws-amplify/auth";
+import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput, deleteUser } from "aws-amplify/auth";
 import { Pool } from "pg";
 import dotenv from "dotenv";
 dotenv.config();
@@ -13,6 +13,7 @@ interface SignUpBody {
 };
 
 interface User {
+  id: string;
   username: string;
   password?: string;
   email: string;
@@ -21,19 +22,10 @@ interface User {
   phone_number: string;
 };
 
-// Setting up the postgres database
-const _pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: Number(process.env.DB_PORT),
-});
-
 // Setting up the lambda
 const user_pool_id: string = process.env.USER_POOL_ID!;
 const user_pool_client_id: string = process.env.USER_POOL_CLIENT_ID!;
-const aws_config: ResourcesConfig = {
+const get_aws_config = (): ResourcesConfig => ({
   Auth: {
     Cognito: {
       userPoolId: user_pool_id,
@@ -41,32 +33,36 @@ const aws_config: ResourcesConfig = {
       signUpVerificationMethod: 'code',
     },
   },
-};
-Amplify.configure(aws_config);
+});
 
-let _user_info: any;
+const get_db_pool = () => new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: Number(process.env.DB_PORT),
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 
 export const create_account = async (event) => {
-  try {
-    // Checking to make sure that the body is valid
-    console.log("body:\n", event.body);
+  Amplify.configure(get_aws_config());
+  const _pool = get_db_pool();
 
+  try {
+    // Checking the body to see if it exists
     if (!event.body) {
-      // Checking the body to see why it's failed
-      console.log("failed body:\n", event.body);
       return {
         statusCode: 400,
-        body: JSON.stringify({
-          message: "Invalid request body"
-        })
+        message: "Invalid request body"
       };
     };
-
     // Parse the body for use
-    _user_info = JSON.parse(event['body'])['user_info'];
+    let _user_info = JSON.parse(event['body'])['user_info'];
     // Sign up method
-    const user: SignUpOutput = await signUp({
+    const sign_up_result: SignUpOutput = await signUp({
       username: _user_info.username,
       password: _user_info.password,
       options: {
@@ -78,26 +74,44 @@ export const create_account = async (event) => {
       },
     });
 
-    console.log("user signup method return:", user);
+    if (!sign_up_result.isSignUpComplete) {
+      await deleteUser();
+      throw new Error("There was a problem with adding user to the database.");
+    }
+
+    const user_data: User = {
+      id: sign_up_result['userId']!,
+      username: _user_info['username'],
+      first_name: _user_info['first_name'],
+      last_name: _user_info['first_name'],
+      email: _user_info['email'],
+      phone_number: _user_info['phone_number']
+    };
+    await add_user_to_db(_pool, user_data);
 
     // Return 200 if the user is working properly
     return {
       statusCode: 200,
-      body: JSON.parse(event['body'])['user_info']
-    }
+      body: JSON.stringify(user_data)
+    };
+
   } catch (error) {
-    console.log("error message:", error);
+    console.error("Error in create_account:", error);
 
     return {
       statusCode: 500,
       body: JSON.stringify({
-        message: 'Error during sign-up process'
+        message: 'Error during sign-up process',
+        error: error.message
       })
     };
+  } finally {
+    // When all's said and done it will end the db pool
+    await _pool.end();
   }
 };
 
-export const confirm_user = async (event) => {
+export const confirm_user = (event) => {
   // Confirm the user
   event.response.autoConfirmUser = true;
   // Set the email as verified if it is in the request
@@ -110,42 +124,48 @@ export const confirm_user = async (event) => {
     event.response.autoVerifyPhone = true;
   }
 
+  console.log("confirm_user", event);
   return event;
 };
 
-async function add_user(user_data: User) {
-  const _user = user_data;
-  const _client = await _pool.connect();
+async function add_user_to_db(pool: Pool, user_data: User) {
+  // Setting up the postgres database
+  const pool_obj = pool;
+  const client = await pool_obj.connect();
 
   try {
-    await _client.query("BEGIN");
-    const _query = "INSERT INTO users() VALUES($1, $2, $3) RETURNING id";
+    const _query = `INSERT INTO Nat20.users (
+      id,
+      username,
+      first_name,
+      last_name,
+      email,
+      phone_number,
+      date_created,
+      date_modified
+      ) VALUES($1, $2, $3, $4, $5, $6, $7, $7) RETURNING *`;
+
+    const timestamp = new Date().toISOString();
     const _values = [
-      _user.email,
-      _user.first_name,
-      _user.last_name,
-      _user.phone_number,
-      _user.username
+      user_data.id,
+      user_data.username,
+      user_data.first_name,
+      user_data.last_name,
+      user_data.email,
+      user_data.phone_number,
+      timestamp
     ];
-    const _res = await _client.query(_query, _values);
-    await _client.query("COMMIT");
 
-    return {
-      success: true,
-      message: "User added successfully",
-      user_id: _res.rows[0].id
-    }
+    const _res = await client.query(_query, _values);
+    return _res['rows'][0];
+
   } catch (error) {
-    await _client.query("ROLLBACK");
+    console.error("Database error:", error);
     if (error.code === '23505') {
-      return {
-        success: false,
-        message: "An error occurred while adding the user"
-      };
+      throw new Error("Database error when adding user");
     }
+    throw error;
   } finally {
-    _client.release();
+    client.release();
   }
-}
-
-0
+};

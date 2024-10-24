@@ -5,10 +5,10 @@ provider:
     name: aws
     runtime: nodejs20.x
     region: us-east-1
-    memorySize: 128
+    memorySize: 1024
     timeout: 30
     apiGateway:
-        restApi: "asdasd"
+        # restApi: 'asdasd'
         description: 'My User Authentication Service'
 
 package:
@@ -24,7 +24,9 @@ functions:
         handler: src/auth_handlers/auth.create_account
         events:
             - http:
-                  cors: true
+                  #   cors:
+                  #       origin: '*'
+                  #       maxAge: 86400
                   path: users
                   method: post
 
@@ -33,5 +35,5 @@ functions:
         handler: src/auth_handlers/auth.confirm_user
         events:
             - cognitoUserPool:
-                  pool: Nat20-Pool
+                  pool: nat20-users
                   trigger: PreSignUp
