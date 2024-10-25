@@ -65,11 +65,17 @@ export const create_account = async (event) => {
     if (!event.body) {
       return {
         statusCode: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+          "Content-Type": "application/json"
+        },
         message: "Invalid request body"
       };
     };
     // Parse the body for use
-    let _user_info = JSON.parse(event['body'])['user_info'];
+    let _user_info = JSON.parse(event['body']);
     // Sign up method
     const sign_up_result: SignUpOutput = await signUp({
       username: _user_info.username,
@@ -101,6 +107,12 @@ export const create_account = async (event) => {
     // Return 200 if the user is working properly
     return {
       statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+      },
       body: JSON.stringify(user_data)
     };
 
@@ -109,6 +121,12 @@ export const create_account = async (event) => {
 
     return {
       statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         message: 'Error during sign-up process',
         error: error.message

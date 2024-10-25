@@ -24,9 +24,9 @@ functions:
         handler: src/auth_handlers/auth.create_account
         events:
             - http:
-                  #   cors:
-                  #       origin: '*'
-                  #       maxAge: 86400
+                  cors:
+                      origin: '*'
+                      maxAge: 86400
                   path: users
                   method: post
 
