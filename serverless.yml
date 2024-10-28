@@ -25,7 +25,7 @@ functions:
         events:
             - http:
                   cors:
-                      origin: '*'
+                      origin: 'https://localhost:4200'
                       maxAge: 86400
                   path: users
                   method: post
