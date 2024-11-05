@@ -16,7 +16,8 @@ package:
     exclude:
         - '**/**' # Excludes everything by default
         - '!src/**' # Then include only what you need
-        - '!.env'
+    include:
+        - .env
 
 functions:
     create_user:

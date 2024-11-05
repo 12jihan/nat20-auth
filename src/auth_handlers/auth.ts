@@ -35,11 +35,13 @@ interface User {
 // Setting up the lambda
 const user_pool_id: string = process.env.USER_POOL_ID!;
 const user_pool_client_id: string = process.env.USER_POOL_CLIENT_ID!;
+const identity_pool_id: string = process.env.IDENTITY_POOL_ID!;
 const get_aws_config = (): ResourcesConfig => ({
   Auth: {
     Cognito: {
       userPoolId: user_pool_id,
       userPoolClientId: user_pool_client_id,
+      identityPoolId: identity_pool_id,
       signUpVerificationMethod: 'code',
     },
   },
@@ -58,6 +60,7 @@ const get_db_pool = () => new Pool({
 
 
 export const create_account = async (event) => {
+  console.log("testing config", get_aws_config());
   Amplify.configure(get_aws_config());
   const _pool = get_db_pool();
 
@@ -78,6 +81,7 @@ export const create_account = async (event) => {
     };
     // Parse the body for use
     let _user_info = JSON.parse(event['body']);
+    console.log("user data:", _user_info);
     // Sign up method
     const sign_up_result: SignUpOutput = await signUp({
       username: _user_info.username,
@@ -157,70 +161,64 @@ export const confirm_user = (event) => {
   return event;
 };
 
-export const signin_user = (event) => {
+export const signin_user = async (event) => {
+  console.log("testing config", get_aws_config());
+  Amplify.configure(get_aws_config());
   const user_info: any = JSON.parse(event.body);
-  console.log("signin_user", user_info);
-  return {
-    status: 200,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Credentials": true,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message: "User signed in successfully",
-      message2: event.body
-    })
-  };
+  console.log("signin_user", event.body);
+  console.log("identity pool:", identity_pool_id);
+
+  try {
+    console.log("signin_user running", user_info);
+    const _signin: SignInOutput = await signIn({
+      username: user_info.username,
+      password: user_info.password,
+    });
+
+    if (_signin.isSignedIn) {
+      console.log("from sign in output:", _signin);
+      return {
+        statusCode: 200,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "User signed in successfully"
+        })
+      };
+    }
+
+    return {
+      statusCode: 400,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "User was unable to signin. Please try again."
+      })
+    };
+  } catch (error) {
+    console.log("this error test: ", error);
+    return {
+      statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: error.message
+      })
+    };
+  }
 }
-// console.log("signin_user", event.body);
-
-// try {
-//   console.log("signin_user running");
-//   const _signin: SignInOutput = await signIn({
-//     username: user_info.username,
-//     password: user_info.password,
-//   });
-
-//   if (_signin.isSignedIn) {
-//     console.log("from sign in output:", _signin);
-//     return {
-//       status: 200,
-//       headers: {
-//         "Access-Control-Allow-Origin": "*",
-//         "Access-Control-Allow-Headers": "*"
-//       },
-//       body: JSON.stringify({
-//         message: "User signed in successfully"
-//       })
-//     };
-//   }
-
-//   return {
-//     status: 400,
-//     headers: {
-//       "Access-Control-Allow-Origin": "*",
-//       "Access-Control-Allow-Headers": "*"
-//     },
-//     body: JSON.stringify({
-//       message: "User was unable to signin. Please try again."
-//     })
-//   };
-// } catch (error) {
-
-//   return {
-//     status: 500,
-//     headers: {
-//       "Access-Control-Allow-Origin": "*",
-//       "Access-Control-Allow-Headers": "*"
-//     },
-//     body: JSON.stringify({
-//       test: "this an error i guess",
-//       message: error.message
-//     })
-//   };
-// }
-// }
 
 async function add_user_to_db(pool: Pool, user_data: User) {
   // Setting up the postgres database
