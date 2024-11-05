@@ -25,7 +25,7 @@ functions:
         events:
             - http:
                   cors:
-                      origin: 'https://localhost:4200'
+                      origin: '*'
                       maxAge: 86400
                   path: users
                   method: post
@@ -37,3 +37,15 @@ functions:
             - cognitoUserPool:
                   pool: nat20-users
                   trigger: PreSignUp
+
+    signin_user:
+        description: 'Sign in a user'
+        handler: src/auth_handlers/auth.signin_user
+        events:
+            - http:
+                  cors:
+                      origin: '*'
+                      maxAge: 86400
+                  path: login
+                  method: post
+                  #   timeout: 1800

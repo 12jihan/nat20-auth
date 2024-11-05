@@ -1,7 +1,8 @@
 import { Amplify, ResourcesConfig } from "aws-amplify";
-import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput, deleteUser } from "aws-amplify/auth";
+import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput, deleteUser, SignInInput, SignInOutput } from "aws-amplify/auth";
 import { Pool } from "pg";
 import dotenv from "dotenv";
+import { post } from "aws-amplify/api";
 dotenv.config();
 
 // Interfaces for further custom configuration
@@ -67,6 +68,7 @@ export const create_account = async (event) => {
         statusCode: 400,
         headers: {
           "Access-Control-Allow-Origin": "*",
+          // "Access-Control-Allow-Credentials": true,
           "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
           "Content-Type": "application/json"
@@ -109,9 +111,9 @@ export const create_account = async (event) => {
       statusCode: 200,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(user_data)
     };
@@ -123,7 +125,7 @@ export const create_account = async (event) => {
       statusCode: 500,
       headers: {
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
         "Content-Type": "application/json"
       },
@@ -154,6 +156,71 @@ export const confirm_user = (event) => {
   console.log("confirm_user", event);
   return event;
 };
+
+export const signin_user = (event) => {
+  const user_info: any = JSON.parse(event.body);
+  console.log("signin_user", user_info);
+  return {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Credentials": true,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "User signed in successfully",
+      message2: event.body
+    })
+  };
+}
+// console.log("signin_user", event.body);
+
+// try {
+//   console.log("signin_user running");
+//   const _signin: SignInOutput = await signIn({
+//     username: user_info.username,
+//     password: user_info.password,
+//   });
+
+//   if (_signin.isSignedIn) {
+//     console.log("from sign in output:", _signin);
+//     return {
+//       status: 200,
+//       headers: {
+//         "Access-Control-Allow-Origin": "*",
+//         "Access-Control-Allow-Headers": "*"
+//       },
+//       body: JSON.stringify({
+//         message: "User signed in successfully"
+//       })
+//     };
+//   }
+
+//   return {
+//     status: 400,
+//     headers: {
+//       "Access-Control-Allow-Origin": "*",
+//       "Access-Control-Allow-Headers": "*"
+//     },
+//     body: JSON.stringify({
+//       message: "User was unable to signin. Please try again."
+//     })
+//   };
+// } catch (error) {
+
+//   return {
+//     status: 500,
+//     headers: {
+//       "Access-Control-Allow-Origin": "*",
+//       "Access-Control-Allow-Headers": "*"
+//     },
+//     body: JSON.stringify({
+//       test: "this an error i guess",
+//       message: error.message
+//     })
+//   };
+// }
+// }
 
 async function add_user_to_db(pool: Pool, user_data: User) {
   // Setting up the postgres database
