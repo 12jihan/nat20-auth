@@ -10,6 +10,17 @@ provider:
     apiGateway:
         # restApi: 'asdasd'
         description: 'My User Authentication Service'
+    # environment:
+    # TEST: ${file(./env.yml)}
+# iamRoleStatements:
+#     - Effect: 'Allow'
+#       Action:
+#           - cognito-idp:AdminInitiateAuth
+#           - cognito-idp:AdminCreateUser
+#           - cognito-idp:AdminSetUserPassword
+#           - cognito-idp:AdminGetUser
+#           - cognito-idp:AdminUpdateUserAttributes
+#       Resource: 'arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/*'
 
 package:
     individually: false
