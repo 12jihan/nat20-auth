@@ -163,7 +163,7 @@ export const confirm_user = (event) => {
 
 export const signin_user = async (event) => {
 
-  // console.log("testing config", process.env.TEST);
+  console.log("testing env", process.env);
   console.log("testing config", get_aws_config());
   Amplify.configure(get_aws_config());
   const user_info: any = JSON.parse(event.body);

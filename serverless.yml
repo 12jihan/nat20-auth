@@ -10,8 +10,18 @@ provider:
     apiGateway:
         # restApi: 'asdasd'
         description: 'My User Authentication Service'
-    # environment:
-    # TEST: ${file(./env.yml)}
+    environment:
+        # User Pool information
+        USER_POOL_ID: ${env:USER_POOL_ID}
+        USER_POOL_CLIENT_ID: ${env:USER_POOL_CLIENT_ID}
+        IDENTITY_POOL_ID: ${env:IDENTITY_POOL_ID}
+        V_METHOD: ${env:verification_method}
+        # DB Information information
+        DB_NAME: ${env:DB_NAME}
+        DB_HOST: ${env:DB_HOST}
+        DB_PORT: ${env:DB_PORT}
+        DB_USER: ${env:DB_USER}
+        DB_PASSWORD: ${env:DB_PASSWORD}
 # iamRoleStatements:
 #     - Effect: 'Allow'
 #       Action:
