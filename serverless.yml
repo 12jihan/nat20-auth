@@ -41,6 +41,7 @@ package:
         - .env
 
 functions:
+    # Authentication
     create_user:
         description: 'Create a new user'
         handler: src/auth_handlers/auth.create_account
@@ -71,14 +72,19 @@ functions:
                   path: login
                   method: post
                   #   timeout: 1800
+
     signout_user:
-        description: 'Sign in a user'
+        description: 'Sign out a user'
         handler: src/auth_handlers/auth.signout_user
         events:
             - http:
                   cors:
                       origin: '*'
                       maxAge: 86400
-                  path: login
+                  path: logout
                   method: post
                   #   timeout: 1800
+
+    # Campaign Stuff:
+
+    # create_campaign:

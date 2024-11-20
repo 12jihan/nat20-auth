@@ -1,5 +1,5 @@
 import { Amplify, ResourcesConfig } from "aws-amplify";
-import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput, deleteUser, SignInInput, SignInOutput, getCurrentUser, GetCurrentUserOutput, fetchUserAttributes, FetchUserAttributesOutput, signOut, SignOutInput } from "aws-amplify/auth";
+import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput, deleteUser, SignInInput, SignInOutput, getCurrentUser, GetCurrentUserOutput, fetchUserAttributes, FetchUserAttributesOutput, signOut, SignOutInput, AuthSession, fetchAuthSession } from "aws-amplify/auth";
 import { Pool } from "pg";
 import dotenv from "dotenv";
 import { post } from "aws-amplify/api";
@@ -179,8 +179,13 @@ export const signin_user = async (event) => {
       _signin.nextStep.signInStep === 'DONE'
     ) {
       console.log("from sign in output:", _signin);
-      const _session: GetCurrentUserOutput = await getCurrentUser();
-      console.log("current user session:", _session);
+      const _cur_user: GetCurrentUserOutput = await getCurrentUser();
+      console.log("current user:", _cur_user);
+      const _session: AuthSession = await fetchAuthSession();
+      if (_session.tokens !== undefined) {
+        console.log("id token;", _session.tokens.idToken)
+        console.log("access token:", _session.tokens.accessToken)
+      }
       const _token: FetchUserAttributesOutput = await fetchUserAttributes();
       console.log("current user token:", _token);
 
@@ -193,7 +198,10 @@ export const signin_user = async (event) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          message: "User signed in successfully"
+          status: 200,
+          message: "success",
+          user_details: _cur_user,
+          session_token: _session
         })
       };
     }
@@ -235,6 +243,7 @@ export const signout_user = async (event) => {
   try {
     console.log("Signing out user");
     await signOut();
+
     return {
       statusCode: 200,
       headers: {
@@ -244,12 +253,12 @@ export const signout_user = async (event) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: "User signed in successfully"
+        message: "User signed-out successfully"
       })
     };
 
   } catch (error) {
-    console.log("signout unsuccessful: ", error);
+    console.log("sign-out unsuccessful: ", error);
     return {
       statusCode: 400,
       headers: {
@@ -259,7 +268,8 @@ export const signout_user = async (event) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: "User was unable to signin. Please try again."
+        message: "User was unable to signin. Please try again.",
+        error: error
       })
     };
   };
