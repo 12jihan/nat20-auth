@@ -11,12 +11,12 @@ provider:
         # restApi: 'asdasd'
         description: 'My User Authentication Service'
     environment:
-    # User Pool information
+        # User Pool information
         USER_POOL_ID: ${env:USER_POOL_ID}
         USER_POOL_CLIENT_ID: ${env:USER_POOL_CLIENT_ID}
         IDENTITY_POOL_ID: ${env:IDENTITY_POOL_ID}
         V_METHOD: ${env:verification_method}
-    # DB Information information
+        # DB Information information
         DB_NAME: ${env:DB_NAME}
         DB_HOST: ${env:DB_HOST}
         DB_PORT: ${env:DB_PORT}
@@ -63,6 +63,17 @@ functions:
     signin_user:
         description: 'Sign in a user'
         handler: src/auth_handlers/auth.signin_user
+        events:
+            - http:
+                  cors:
+                      origin: '*'
+                      maxAge: 86400
+                  path: login
+                  method: post
+                  #   timeout: 1800
+    signout_user:
+        description: 'Sign in a user'
+        handler: src/auth_handlers/auth.signout_user
         events:
             - http:
                   cors:

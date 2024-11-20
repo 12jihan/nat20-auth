@@ -1,5 +1,5 @@
 import { Amplify, ResourcesConfig } from "aws-amplify";
-import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput, deleteUser, SignInInput, SignInOutput } from "aws-amplify/auth";
+import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, ConfirmSignUpOutput, deleteUser, SignInInput, SignInOutput, getCurrentUser, GetCurrentUserOutput, fetchUserAttributes, FetchUserAttributesOutput, signOut, SignOutInput } from "aws-amplify/auth";
 import { Pool } from "pg";
 import dotenv from "dotenv";
 import { post } from "aws-amplify/api";
@@ -174,8 +174,16 @@ export const signin_user = async (event) => {
       password: user_info.password,
     });
 
-    if (_signin.isSignedIn) {
+    if (
+      _signin.isSignedIn &&
+      _signin.nextStep.signInStep === 'DONE'
+    ) {
       console.log("from sign in output:", _signin);
+      const _session: GetCurrentUserOutput = await getCurrentUser();
+      console.log("current user session:", _session);
+      const _token: FetchUserAttributesOutput = await fetchUserAttributes();
+      console.log("current user token:", _token);
+
       return {
         statusCode: 200,
         headers: {
@@ -217,6 +225,57 @@ export const signin_user = async (event) => {
       })
     };
   }
+}
+
+export const signout_user = async (event) => {
+  Amplify.configure(get_aws_config());
+  const body: any = JSON.parse(event.body);
+  console.log("signout user / body ->", body);
+
+  try {
+    console.log("Signing out user");
+    await signOut();
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "User signed in successfully"
+      })
+    };
+
+  } catch (error) {
+    console.log("signout unsuccessful: ", error);
+    return {
+      statusCode: 400,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "User was unable to signin. Please try again."
+      })
+    };
+  };
+
+  // return {
+  //   statusCode: 500,
+  //   headers: {
+  //     "Access-Control-Allow-Origin": "*",
+  //     "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+  //     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+  //     "Content-Type": "application/json"
+  //   },
+  //   body: JSON.stringify({
+  //     message: "server error. Please try again later."
+  //   })
+  // };
 }
 
 async function add_user_to_db(pool: Pool, user_data: User) {
