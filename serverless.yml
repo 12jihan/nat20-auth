@@ -85,6 +85,18 @@ functions:
                   method: post
                   #   timeout: 1800
 
+    get_current_user:
+        description: 'Get the current active user.'
+        handler: src/auth_handlers/auth.get_current_user
+        events:
+            - http:
+                  cors:
+                      origin: '*'
+                      maxAge: 86400
+                  path: current_user
+                  method: get
+                  #   timeout: 1800
+
     # Campaign Stuff:
 
     # create_campaign:

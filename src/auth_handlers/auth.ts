@@ -3,6 +3,7 @@ import { signIn, signUp, SignUpOutput, confirmUserAttribute, confirmSignUp, Conf
 import { Pool } from "pg";
 import dotenv from "dotenv";
 import { post } from "aws-amplify/api";
+import { CognitoIdentityServiceProvider } from "aws-sdk";
 dotenv.config();
 
 // Interfaces for further custom configuration
@@ -162,6 +163,7 @@ export const confirm_user = (event) => {
 };
 
 export const signin_user = async (event) => {
+  const client = new CognitoIdentityServiceProvider
   Amplify.configure(get_aws_config());
   const user_info: any = JSON.parse(event.body);
   console.log("signin_user", event.body);
@@ -173,21 +175,21 @@ export const signin_user = async (event) => {
       username: user_info.username,
       password: user_info.password,
     });
+    // const test: any = sign
 
     if (
       _signin.isSignedIn &&
       _signin.nextStep.signInStep === 'DONE'
     ) {
-      console.log("from sign in output:", _signin);
       const _cur_user: GetCurrentUserOutput = await getCurrentUser();
-      console.log("current user:", _cur_user);
       const _session: AuthSession = await fetchAuthSession();
+      const _user_attributes: FetchUserAttributesOutput = await fetchUserAttributes();
+      console.log("current user:", _cur_user);
       if (_session.tokens !== undefined) {
         console.log("id token;", _session.tokens.idToken)
         console.log("access token:", _session.tokens.accessToken)
+        console.log("current user token:", _user_attributes);
       }
-      const _token: FetchUserAttributesOutput = await fetchUserAttributes();
-      console.log("current user token:", _token);
 
       return {
         statusCode: 200,
@@ -273,19 +275,46 @@ export const signout_user = async (event) => {
       })
     };
   };
+}
 
-  // return {
-  //   statusCode: 500,
-  //   headers: {
-  //     "Access-Control-Allow-Origin": "*",
-  //     "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
-  //     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-  //     "Content-Type": "application/json"
-  //   },
-  //   body: JSON.stringify({
-  //     message: "server error. Please try again later."
-  //   })
-  // };
+export const get_current_user = async (event) => {
+  Amplify.configure(get_aws_config());
+  const body: any = JSON.parse(event.body);
+  console.log("get current user / body ->", body);
+
+  try {
+    const _session: AuthSession = await fetchAuthSession();
+    const _current_user: GetCurrentUserOutput = await getCurrentUser();
+    console.log("current user:", _current_user);
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Current user captured.",
+        data: _current_user
+      })
+    };
+  } catch (error) {
+    console.error("There was an error getting the current user:", error);
+    return {
+      statusCode: 400,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Was unable to get current user.",
+        error: error
+      })
+    };
+  }
 }
 
 async function add_user_to_db(pool: Pool, user_data: User) {
