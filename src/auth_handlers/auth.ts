@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 import { post } from "aws-amplify/api";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
+import { AdminConfirmSignUpCommand, AdminCreateUserCommand, AdminInitiateAuthCommand, AdminInitiateAuthCommandOutput, AdminSetUserPasswordCommand, AuthFlowType, CognitoIdentityProviderClient, GlobalSignOutCommand, GlobalSignOutCommandOutput, RevokeTokenCommand, RevokeTokenCommandOutput } from "@aws-sdk/client-cognito-identity-provider";
 dotenv.config();
 
 // Interfaces for further custom configuration
@@ -61,48 +62,51 @@ const get_db_pool = () => new Pool({
 
 
 export const create_account = async (event) => {
-  console.log("testing config", get_aws_config());
-  Amplify.configure(get_aws_config());
+  const client = new CognitoIdentityProviderClient({});
+  const _user_info = JSON.parse(event['body']);
   const _pool = get_db_pool();
 
   try {
-    // Checking the body to see if it exists
-    if (!event.body) {
-      return {
-        statusCode: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          // "Access-Control-Allow-Credentials": true,
-          "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-          "Content-Type": "application/json"
+    const _command = new AdminCreateUserCommand({
+      UserPoolId: process.env.USER_POOL_ID,
+      Username: _user_info.username,
+      MessageAction: 'SUPPRESS',
+      UserAttributes: [
+        {
+          Name: 'email',
+          Value: _user_info.email
         },
-        message: "Invalid request body"
-      };
-    };
-    // Parse the body for use
-    let _user_info = JSON.parse(event['body']);
-    console.log("user data:", _user_info);
-    // Sign up method
-    const sign_up_result: SignUpOutput = await signUp({
-      username: _user_info.username,
-      password: _user_info.password,
-      options: {
-        userAttributes: {
-          email: _user_info.email,
-          phone_number: _user_info.phone_number ? _user_info.phone_number : '',
-        },
-        autoSignIn: true
-      },
+        {
+          Name: 'phone_number',
+          Value: _user_info.phone_number
+        }
+      ]
     });
-
-    if (!sign_up_result.isSignUpComplete) {
-      await deleteUser();
-      throw new Error("There was a problem with adding user to the database.");
+    const response = await client.send(_command);
+    let user_id;
+    if (response.User) {
+      user_id = response.User?.Attributes?.find(value => value.Name == "sub");
+      user_id = user_id['Value'];
     }
 
+    const set_pw_command = new AdminSetUserPasswordCommand({
+      UserPoolId: process.env.USER_POOL_ID,
+      Username: _user_info.username,
+      Password: _user_info.password,
+      Permanent: true
+    });
+    const set_pw_client_send = await client.send(set_pw_command);
+
+    // Not needed because permanent password confirms the user already
+    // const confirm_command = new AdminConfirmSignUpCommand({
+    //   UserPoolId: process.env.USER_POOL_ID,
+    //   Username: _user_info.username
+    // });
+    // const confirm_client_send = await client.send(confirm_command);
+    // console.log("confirm client", confirm_client_send);
+
     const user_data: User = {
-      id: sign_up_result['userId']!,
+      id: user_id,
       username: _user_info['username'],
       first_name: _user_info['first_name'],
       last_name: _user_info['first_name'],
@@ -111,7 +115,6 @@ export const create_account = async (event) => {
     };
     await add_user_to_db(_pool, user_data);
 
-    // Return 200 if the user is working properly
     return {
       statusCode: 200,
       headers: {
@@ -122,10 +125,8 @@ export const create_account = async (event) => {
       },
       body: JSON.stringify(user_data)
     };
-
   } catch (error) {
     console.error("Error in create_account:", error);
-
     return {
       statusCode: 500,
       headers: {
@@ -140,57 +141,28 @@ export const create_account = async (event) => {
       })
     };
   } finally {
-    // When all's said and done it will end the db pool
     await _pool.end();
   }
-};
-
-export const confirm_user = (event) => {
-  // Confirm the user
-  event.response.autoConfirmUser = true;
-  // Set the email as verified if it is in the request
-  if (Object.hasOwn(event.request.userAttributes, "email")) {
-    event.response.autoVerifyEmail = true;
-  }
-
-  // Set the phone number as verified if it is in the request
-  if (Object.hasOwn(event.request.userAttributes, "phone_number")) {
-    event.response.autoVerifyPhone = true;
-  }
-
-  console.log("confirm_user", event);
-  return event;
-};
+}
 
 export const signin_user = async (event) => {
-  const client = new CognitoIdentityServiceProvider
-  Amplify.configure(get_aws_config());
+  const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient({});
   const user_info: any = JSON.parse(event.body);
-  console.log("signin_user", event.body);
-  console.log("identity pool:", identity_pool_id);
 
   try {
-    console.log("signin_user running", user_info);
-    const _signin: SignInOutput = await signIn({
-      username: user_info.username,
-      password: user_info.password,
-    });
-    // const test: any = sign
-
-    if (
-      _signin.isSignedIn &&
-      _signin.nextStep.signInStep === 'DONE'
-    ) {
-      const _cur_user: GetCurrentUserOutput = await getCurrentUser();
-      const _session: AuthSession = await fetchAuthSession();
-      const _user_attributes: FetchUserAttributesOutput = await fetchUserAttributes();
-      console.log("current user:", _cur_user);
-      if (_session.tokens !== undefined) {
-        console.log("id token;", _session.tokens.idToken)
-        console.log("access token:", _session.tokens.accessToken)
-        console.log("current user token:", _user_attributes);
+    const command: AdminInitiateAuthCommand = new AdminInitiateAuthCommand({
+      AuthFlow: AuthFlowType.ADMIN_USER_PASSWORD_AUTH,
+      ClientId: process.env.USER_POOL_CLIENT_ID,
+      UserPoolId: process.env.USER_POOL_ID,
+      AuthParameters: {
+        USERNAME: user_info.username,
+        PASSWORD: user_info.password
       }
+    });
 
+    const _response: AdminInitiateAuthCommandOutput = await client.send(command);
+
+    if (_response.AuthenticationResult) {
       return {
         statusCode: 200,
         headers: {
@@ -202,8 +174,7 @@ export const signin_user = async (event) => {
         body: JSON.stringify({
           status: 200,
           message: "success",
-          user_details: _cur_user,
-          session_token: _session
+          token: _response.AuthenticationResult
         })
       };
     }
@@ -221,9 +192,9 @@ export const signin_user = async (event) => {
       })
     };
   } catch (error) {
-    console.log("this error test: ", error);
+    console.log("error message:\n", error);
     return {
-      statusCode: 500,
+      statusCode: 400,
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
@@ -238,13 +209,25 @@ export const signin_user = async (event) => {
 }
 
 export const signout_user = async (event) => {
-  Amplify.configure(get_aws_config());
   const body: any = JSON.parse(event.body);
-  console.log("signout user / body ->", body);
+  const headers: any = event.headers;
+
+  let client: RevokeTokenCommandOutput | GlobalSignOutCommandOutput | undefined;
 
   try {
-    console.log("Signing out user");
-    await signOut();
+    switch (body.method) {
+      case "basic":
+        client = await basic_signout(headers.Authorization);
+        break;
+
+      case "global":
+        client = await global_signout(headers.Authorization);
+        break;
+
+      default:
+        throw new Error("Unable to sign-out, Please Refresh the page.");
+    }
+
 
     return {
       statusCode: 200,
@@ -255,7 +238,8 @@ export const signout_user = async (event) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: "User signed-out successfully"
+        message: "success",
+        data: client
       })
     };
 
@@ -270,7 +254,7 @@ export const signout_user = async (event) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: "User was unable to signin. Please try again.",
+        message: "failure",
         error: error
       })
     };
@@ -278,14 +262,11 @@ export const signout_user = async (event) => {
 }
 
 export const get_current_user = async (event) => {
-  Amplify.configure(get_aws_config());
-  const body: any = JSON.parse(event.body);
-  console.log("get current user / body ->", body);
 
   try {
     const _session: AuthSession = await fetchAuthSession();
     const _current_user: GetCurrentUserOutput = await getCurrentUser();
-    console.log("current user:", _current_user);
+
     return {
       statusCode: 200,
       headers: {
@@ -357,4 +338,23 @@ async function add_user_to_db(pool: Pool, user_data: User) {
   } finally {
     client.release();
   }
-};
+}
+
+async function basic_signout(token: string): Promise<RevokeTokenCommandOutput> {
+  const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient({});
+  const command: RevokeTokenCommand = new RevokeTokenCommand({
+    ClientId: process.env.USER_POOL_CLIENT_ID,
+    Token: token
+  });
+
+  return await client.send(command);
+}
+
+async function global_signout(token: string): Promise<GlobalSignOutCommandOutput> {
+  const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient({});
+  const command: GlobalSignOutCommand = new GlobalSignOutCommand({
+    AccessToken: token
+  });
+
+  return await client.send(command);
+}

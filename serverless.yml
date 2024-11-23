@@ -22,15 +22,17 @@ provider:
         DB_PORT: ${env:DB_PORT}
         DB_USER: ${env:DB_USER}
         DB_PASSWORD: ${env:DB_PASSWORD}
-# iamRoleStatements:
-#     - Effect: 'Allow'
-#       Action:
-#           - cognito-idp:AdminInitiateAuth
-#           - cognito-idp:AdminCreateUser
-#           - cognito-idp:AdminSetUserPassword
-#           - cognito-idp:AdminGetUser
-#           - cognito-idp:AdminUpdateUserAttributes
-#       Resource: 'arn:aws:cognito-idp:${self:provider.region}:${aws:accountId}:userpool/*'
+
+    iamRoleStatements:
+        - Effect: 'Allow'
+          Action:
+              - cognito-idp:AdminInitiateAuth
+              - cognito-idp:AdminCreateUser
+              - cognito-idp:AdminConfirmSignUp
+              - cognito-idp:AdminSetUserPassword
+              - cognito-idp:AdminGetUser
+              - cognito-idp:AdminUpdateUserAttributes
+          Resource: arn:aws:cognito-idp:${self:provider.region}:${env:aws_account_id}:userpool/${env:USER_POOL_ID}
 
 package:
     individually: false
@@ -53,13 +55,13 @@ functions:
                   path: users
                   method: post
 
-    confirm_user:
-        description: 'Confirm a new user'
-        handler: src/auth_handlers/auth.confirm_user
-        events:
-            - cognitoUserPool:
-                  pool: nat20-users
-                  trigger: PreSignUp
+    # confirm_user:
+    #     description: 'Confirm a new user'
+    #     handler: src/auth_handlers/auth.confirm_user
+    #     events:
+    #         - cognitoUserPool:
+    #               pool: nat20-users
+    #               trigger: PreSignUp
 
     signin_user:
         description: 'Sign in a user'
