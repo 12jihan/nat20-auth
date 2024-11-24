@@ -79,6 +79,14 @@ export const create_account = async (event) => {
         {
           Name: 'phone_number',
           Value: _user_info.phone_number
+        },
+        {
+          Name: 'given_name',
+          Value: _user_info.first_name
+        },
+        {
+          Name: 'family_name',
+          Value: _user_info.last_name
         }
       ]
     });
@@ -156,7 +164,7 @@ export const signin_user = async (event) => {
       UserPoolId: process.env.USER_POOL_ID,
       AuthParameters: {
         USERNAME: user_info.username,
-        PASSWORD: user_info.password
+        PASSWORD: user_info.password,
       }
     });
 
@@ -262,41 +270,9 @@ export const signout_user = async (event) => {
 }
 
 export const get_current_user = async (event) => {
-
-  try {
-    const _session: AuthSession = await fetchAuthSession();
-    const _current_user: GetCurrentUserOutput = await getCurrentUser();
-
-    return {
-      statusCode: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "Current user captured.",
-        data: _current_user
-      })
-    };
-  } catch (error) {
-    console.error("There was an error getting the current user:", error);
-    return {
-      statusCode: 400,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "Was unable to get current user.",
-        error: error
-      })
-    };
-  }
 }
+
+// Helper functions:
 
 async function add_user_to_db(pool: Pool, user_data: User) {
   // Setting up the postgres database

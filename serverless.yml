@@ -55,14 +55,6 @@ functions:
                   path: users
                   method: post
 
-    # confirm_user:
-    #     description: 'Confirm a new user'
-    #     handler: src/auth_handlers/auth.confirm_user
-    #     events:
-    #         - cognitoUserPool:
-    #               pool: nat20-users
-    #               trigger: PreSignUp
-
     signin_user:
         description: 'Sign in a user'
         handler: src/auth_handlers/auth.signin_user
@@ -100,5 +92,15 @@ functions:
                   #   timeout: 1800
 
     # Campaign Stuff:
-
     # create_campaign:
+
+    create_campaign:
+        description: 'Create a new campaign'
+        handler: src/campaign_handlers/campaigns.create_campaign
+        events:
+            - http:
+                  cors:
+                      origin: '*'
+                      maxAge: 86400
+                  path: campaigns
+                  method: post
