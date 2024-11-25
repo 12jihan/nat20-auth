@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Client, Pool, PoolClient, QueryResult } from "pg";
 
 interface Campaign {
     dm_id: string;
@@ -6,6 +6,7 @@ interface Campaign {
     start_date: string;
     description: string;
     current_players: any[];
+    private_campaign: boolean;
     date_created: string;
     date_modified: string;
 }
@@ -22,46 +23,104 @@ const get_db_pool = () => new Pool({
 });
 
 export const create_campaign = async (event) => {
+    const campaign_data = JSON.parse(event.body);
     const _pool = get_db_pool();
 
-    const user_data: Campaign = {
-        dm_id: "",
-        title: "",
-        start_date: "",
-        description: "",
-        current_players: [],
-        date_created: new Date().toISOString(),
-        date_modified: new Date().toISOString()
-    };
-    await add_camp_to_db(_pool, user_data);
+    try {
+        const user_data: Campaign = {
+            dm_id: campaign_data.dm_id,
+            title: campaign_data.title,
+            start_date: campaign_data.start_date,
+            description: campaign_data.description,
+            current_players: [
+                campaign_data.dm_id,
+                campaign_data.dm_id,
+                campaign_data.dm_id
+            ],
+            private_campaign: campaign_data.private_campaign,
+            date_created: new Date().toISOString(),
+            date_modified: new Date().toISOString()
+        };
+        await add_campaign_to_db(_pool, user_data);
+
+        return {
+            statusCode: 200,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "success",
+                data: user_data
+            })
+        };
+    } catch (error) {
+        await _pool.end()
+    }
 }
 
+export const get_campaigns = async (event) => {
+    const _req = event.queryStringParameters;
+    const dm_id = _req.dm_id;
+    console.log("req:", dm_id);
+    const _pool: Pool = get_db_pool();
 
-// interface Campaign {
-//     dm_id: string;
-//     title: string;
-//     start_date: string;
-//     description: string;
-//     current_players: any[];
-//     date_created: string;
-//     date_modified: string;
-// }
+    // SELECT * FROM table_name WHERE column_name = 'specific_value';
+    try {
+        const _res: QueryResult<any> | undefined = await get_dm_campaigns(_pool, dm_id);
+        return {
+            statusCode: 200,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "success",
+                data: _res?.rows
+            })
+        };
+    } catch (error) {
+        console.log("can not get campaign");
+        return {
+            statusCode: 500,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "failure",
+                data: error
+            })
+        };
+    } finally {
+        await _pool.end()
+    }
+}
 
-async function add_camp_to_db(pool: Pool, user_data: Campaign) {
+async function add_campaign_to_db(pool: Pool, user_data: Campaign) {
     // Setting up the postgres database
     const pool_obj = pool;
     const client = await pool_obj.connect();
+    console.log("client", client);
+    console.log("campaign data:", user_data);
 
     try {
-        const _query = `INSERT INTO Nat20.users (
+        const _query = `INSERT INTO Nat20.campaigns (
         dm_id,
         title,
         start_date,
         description,
         current_players,
+        private_campaign,
         date_created,
         date_modified
-        ) VALUES($1, $2, $3, $4, $5, $6, $6) RETURNING *`;
+        ) VALUES($1, $2, $3, $4, $5, $6, $7, $7) RETURNING *`;
 
         const timestamp = new Date().toISOString();
         const _values = [
@@ -70,6 +129,7 @@ async function add_camp_to_db(pool: Pool, user_data: Campaign) {
             user_data.start_date,
             user_data.description,
             user_data.current_players,
+            user_data.private_campaign,
             timestamp
         ];
 
@@ -78,11 +138,28 @@ async function add_camp_to_db(pool: Pool, user_data: Campaign) {
 
     } catch (error) {
         console.error("Database error:", error);
-        if (error.code === '23505') {
+        if (error.code === '42601') {
             throw new Error("Database error when adding user");
         }
         throw error;
     } finally {
         client.release();
+    }
+}
+
+async function get_dm_campaigns(pool: Pool, dm_id: string) {
+    const pool_obj: Pool = pool;
+    const _client: PoolClient = await pool_obj.connect();
+
+    const _query = `SELECT * FROM Nat20.campaigns WHERE dm_id = $1`;
+    const values = [dm_id];
+
+    try {
+        const _res = await _client.query(_query, values);
+        return _res;
+    } catch (error) {
+        console.log("there was an error running a query:", _query, error)
+    } finally {
+        _client.release();
     }
 }

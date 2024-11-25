@@ -96,7 +96,7 @@ functions:
 
     create_campaign:
         description: 'Create a new campaign'
-        handler: src/campaign_handlers/campaigns.create_campaign
+        handler: src/campaign_handlers/campaign.create_campaign
         events:
             - http:
                   cors:
@@ -104,3 +104,14 @@ functions:
                       maxAge: 86400
                   path: campaigns
                   method: post
+
+    get_campaigns:
+        description: 'Get All Dm Campaign'
+        handler: src/campaign_handlers/campaign.get_campaigns
+        events:
+            - http:
+                  cors:
+                      origin: '*'
+                      maxAge: 86400
+                  path: campaigns
+                  method: get

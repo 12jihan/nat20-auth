@@ -144,7 +144,7 @@ export const create_account = async (event) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        message: 'Error during sign-up process',
+        message: 'Error creating campaign',
         error: error.message
       })
     };
