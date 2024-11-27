@@ -163,3 +163,33 @@ async function get_dm_campaigns(pool: Pool, dm_id: string) {
         _client.release();
     }
 }
+
+async function get_campaign(id: string, pool: Pool) {
+    const pool_obj: Pool = pool;
+    const _client: PoolClient = await pool_obj.connect();
+
+    // for date checking, I might not even need the id tbh
+    // WHERE (created_at, id) < (last_timestamp, last_id)
+    const _query = `
+    SELECT *
+    FROM Nat20.campaigns 
+    WHERE id = $1
+    ORDER BY date_created
+    LIMIT 10
+    `;
+    const values = [id];
+
+    try {
+        const _res = await _client.query(_query, values);
+        return _res;
+    } catch (error) {
+        console.log("there was an error running a query:", _query, error)
+    } finally {
+        _client.release();
+    }
+}
+
+// will flesh this out a bit later to help with making db calls simpler
+async function db_call() {
+
+}
