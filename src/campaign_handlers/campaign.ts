@@ -67,9 +67,48 @@ export const get_campaigns = async (event) => {
     console.log("req:", dm_id);
     const _pool: Pool = get_db_pool();
 
-    // SELECT * FROM table_name WHERE column_name = 'specific_value';
     try {
-        const _res: QueryResult<any> | undefined = await get_dm_campaigns(_pool, dm_id);
+        const _res: QueryResult<any> | undefined = await get_campaigns_by_dm_id(_pool, dm_id);
+        return {
+            statusCode: 200,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "success",
+                data: _res?.rows
+            })
+        };
+    } catch (error) {
+        console.log("can not get campaign");
+        return {
+            statusCode: 500,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, PUT, GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: "failure",
+                data: error
+            })
+        };
+    } finally {
+        await _pool.end()
+    }
+}
+
+export const get_campaign = async (event) => {
+    const _id = event.pathParameters.id;
+    console.log("id:", _id);
+    const _pool: Pool = get_db_pool();
+
+    try {
+        const _res: QueryResult<any> | undefined = await get_campaign_by_id(_pool, _id);
         return {
             statusCode: 200,
             headers: {
@@ -147,11 +186,16 @@ async function add_campaign_to_db(pool: Pool, user_data: Campaign) {
     }
 }
 
-async function get_dm_campaigns(pool: Pool, dm_id: string) {
+async function get_campaigns_by_dm_id(pool: Pool, dm_id: string) {
     const pool_obj: Pool = pool;
     const _client: PoolClient = await pool_obj.connect();
 
-    const _query = `SELECT * FROM Nat20.campaigns WHERE dm_id = $1`;
+    const _query = `
+        SELECT * FROM Nat20.campaigns 
+        WHERE dm_id = $1 
+        ORDER BY date_created 
+        DESC LIMIT 10
+    `;
     const values = [dm_id];
 
     try {
@@ -164,23 +208,16 @@ async function get_dm_campaigns(pool: Pool, dm_id: string) {
     }
 }
 
-async function get_campaign(id: string, pool: Pool) {
+async function get_campaign_by_id(pool: Pool, id: string) {
     const pool_obj: Pool = pool;
     const _client: PoolClient = await pool_obj.connect();
-
-    // for date checking, I might not even need the id tbh
-    // WHERE (created_at, id) < (last_timestamp, last_id)
-    const _query = `
-    SELECT *
-    FROM Nat20.campaigns 
-    WHERE id = $1
-    ORDER BY date_created
-    LIMIT 10
-    `;
+    console.log("id___:", id);
+    const _query = `SELECT * FROM Nat20.campaigns WHERE id = $1`;
     const values = [id];
 
     try {
         const _res = await _client.query(_query, values);
+        console.log('_res:', _res);
         return _res;
     } catch (error) {
         console.log("there was an error running a query:", _query, error)

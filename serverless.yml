@@ -9,7 +9,7 @@ provider:
     timeout: 30
     apiGateway:
         # restApi: 'asdasd'
-        description: 'My User Authentication Service'
+        description: "My User Authentication Service"
     environment:
         # User Pool information
         USER_POOL_ID: ${env:USER_POOL_ID}
@@ -24,7 +24,7 @@ provider:
         DB_PASSWORD: ${env:DB_PASSWORD}
 
     iamRoleStatements:
-        - Effect: 'Allow'
+        - Effect: "Allow"
           Action:
               - cognito-idp:AdminInitiateAuth
               - cognito-idp:AdminCreateUser
@@ -37,92 +37,90 @@ provider:
 package:
     individually: false
     exclude:
-        - '**/**' # Excludes everything by default
-        - '!src/**' # Then include only what you need
+        - "**/**" # Excludes everything by default
+        - "!src/**" # Then include only what you need
     include:
         - .env
 
 functions:
     # Authentication
     create_user:
-        description: 'Create a new user'
+        description: "Create a new user"
         handler: src/auth_handlers/auth.create_account
         events:
             - http:
                   cors:
-                      origin: '*'
+                      origin: "*"
                       maxAge: 86400
                   path: users
                   method: post
 
     signin_user:
-        description: 'Sign in a user'
+        description: "Sign in a user"
         handler: src/auth_handlers/auth.signin_user
         events:
             - http:
                   cors:
-                      origin: '*'
+                      origin: "*"
                       maxAge: 86400
                   path: login
                   method: post
                   #   timeout: 1800
 
     signout_user:
-        description: 'Sign out a user'
+        description: "Sign out a user"
         handler: src/auth_handlers/auth.signout_user
         events:
             - http:
                   cors:
-                      origin: '*'
+                      origin: "*"
                       maxAge: 86400
                   path: logout
                   method: post
                   #   timeout: 1800
 
     get_user:
-        description: 'Get the current active user.'
+        description: "Get the current active user."
         handler: src/auth_handlers/auth.get_current_user
         events:
             - http:
                   cors:
-                      origin: '*'
+                      origin: "*"
                       maxAge: 86400
                   path: current_user
                   method: get
                   #   timeout: 1800
 
-    # Campaign Stuff:
-    # create_campaign:
-
+    # Campaign:
     create_campaign:
-        description: 'Create a new campaign'
+        description: "Create a new campaign"
         handler: src/campaign_handlers/campaign.create_campaign
         events:
             - http:
                   cors:
-                      origin: '*'
+                      origin: "*"
                       maxAge: 86400
                   path: campaigns
                   method: post
 
-    get_campaigns:
-        description: 'Get All Dm Campaign'
-        handler: src/campaign_handlers/campaign.get_campaigns
-        events:
-            - http:
-                  cors:
-                      origin: '*'
-                      maxAge: 86400
-                  path: campaigns
-                  method: get
-    
     get_campaign:
-        description: 'Get All Dm Campaign'
+        description: "Get A Campaigns"
         handler: src/campaign_handlers/campaign.get_campaign
         events:
             - http:
                   cors:
-                      origin: '*'
+                      origin: "*"
                       maxAge: 86400
                   path: campaigns/{id}
+                  method: get
+
+    get_campaigns:
+        description: "Get All DMs Campaigns"
+        handler: src/campaign_handlers/campaign.get_campaigns
+        events:
+            - http:
+                  cors:
+                      origin: "*"
+                      maxAge: 86400
+                  path: campaigns
                   method: get

@@ -104,7 +104,7 @@ export const create_account = async (event) => {
       Permanent: true
     });
     const set_pw_client_send = await client.send(set_pw_command);
-
+    console.log("set_pw:", set_pw_client_send);
     // Not needed because permanent password confirms the user already
     // const confirm_command = new AdminConfirmSignUpCommand({
     //   UserPoolId: process.env.USER_POOL_ID,
@@ -287,9 +287,10 @@ async function add_user_to_db(pool: Pool, user_data: User) {
       last_name,
       email,
       phone_number,
-      date_created,
-      date_modified
-      ) VALUES($1, $2, $3, $4, $5, $6, $7, $7) RETURNING *`;
+      last_active,
+      created_at,
+      updated_at
+      ) VALUES($1, $2, $3, $4, $5, $6, $7, $7, $7) RETURNING *`;
 
     const timestamp = new Date().toISOString();
     const _values = [
