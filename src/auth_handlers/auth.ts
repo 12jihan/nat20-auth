@@ -4,7 +4,7 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 import { post } from "aws-amplify/api";
 import { CognitoIdentityServiceProvider } from "aws-sdk";
-import { AdminConfirmSignUpCommand, AdminCreateUserCommand, AdminInitiateAuthCommand, AdminInitiateAuthCommandOutput, AdminSetUserPasswordCommand, AuthFlowType, CognitoIdentityProviderClient, GlobalSignOutCommand, GlobalSignOutCommandOutput, RevokeTokenCommand, RevokeTokenCommandOutput } from "@aws-sdk/client-cognito-identity-provider";
+import { AdminConfirmSignUpCommand, AdminCreateUserCommand, AdminGetUserCommand, AdminGetUserCommandOutput, AdminInitiateAuthCommand, AdminInitiateAuthCommandOutput, AdminSetUserPasswordCommand, AttributeType, AuthFlowType, CognitoIdentityProviderClient, GlobalSignOutCommand, GlobalSignOutCommandOutput, RevokeTokenCommand, RevokeTokenCommandOutput } from "@aws-sdk/client-cognito-identity-provider";
 dotenv.config();
 
 // Interfaces for further custom configuration
@@ -155,6 +155,9 @@ export const create_account = async (event) => {
 
 export const signin_user = async (event) => {
   const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient({});
+  const client_user = new CognitoIdentityProviderClient({
+    region: process.env.AWS_REGION
+  });
   const user_info: any = JSON.parse(event.body);
   console.log("user signin:", user_info);
 
@@ -170,8 +173,25 @@ export const signin_user = async (event) => {
     });
 
     const _response: AdminInitiateAuthCommandOutput = await client.send(command);
-
+    console.log("response:", _response);
     if (_response.AuthenticationResult) {
+      const user_cmd = new AdminGetUserCommand({
+        UserPoolId: process.env.USER_POOL_ID,
+        Username: user_info.username
+      });
+      const user_res: AdminGetUserCommandOutput = await client_user.send(user_cmd);
+      let user;
+      if (user_res['UserAttributes']) {
+        user = {
+          id: user_res['UserAttributes'][4].Value,
+          first_name: user_res['UserAttributes'][3].Value,
+          last_name: user_res['UserAttributes'][2].Value,
+          phone_number: user_res['UserAttributes'][1].Value,
+          email: user_res['UserAttributes'][0].Value,
+        };
+        console.log("user info:", user);
+      }
+
       return {
         statusCode: 200,
         headers: {
@@ -183,7 +203,8 @@ export const signin_user = async (event) => {
         body: JSON.stringify({
           status: 200,
           message: "success",
-          token: _response.AuthenticationResult
+          token: _response.AuthenticationResult,
+          user_data: user
         })
       };
     }
@@ -302,6 +323,37 @@ async function add_user_to_db(pool: Pool, user_data: User) {
       user_data.email,
       user_data.phone_number,
       timestamp
+    ];
+
+    const _res = await client.query(_query, _values);
+    return _res['rows'][0];
+
+  } catch (error) {
+    console.error("Database error:", error);
+    if (error.code === '23505') {
+      throw new Error("Database error when adding user");
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+async function get_user_from_db(pool: Pool, user_data: User) {
+  // Setting up the postgres database
+  const pool_obj = pool;
+  const client = await pool_obj.connect();
+
+  try {
+    const _query = `
+    SELECT * 
+    FROM Nat20.users
+    WHERE id = $1
+    `;
+
+    const timestamp = new Date().toISOString();
+    const _values = [
+      user_data.id,
     ];
 
     const _res = await client.query(_query, _values);

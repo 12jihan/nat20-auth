@@ -164,9 +164,10 @@ async function add_campaign_to_db(pool: Pool, user_data: Campaign) {
             campaign_name,
             description,
             start_date,
-            dm_id,
-            private_campaign,
-        ) VALUES($1, $2, $3, $4, $5, $6, $7, $7) RETURNING *`;
+            dm_id
+            ) VALUES($1, $2, $3, $4) RETURNING *`;
+            // private_campaign,
+            // active_campaign,
 
         const timestamp = new Date().toISOString();
         const _values = [
@@ -197,7 +198,7 @@ async function get_campaigns_by_dm_id(pool: Pool, dm_id: string) {
     const _query = `
         SELECT * FROM Nat20.campaigns 
         WHERE dm_id = $1 
-        ORDER BY date_created 
+        ORDER BY updated_at 
         DESC LIMIT 10
     `;
     const values = [dm_id];
