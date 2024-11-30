@@ -1,69 +1,73 @@
-<!--
-title: 'AWS Simple HTTP Endpoint example in NodeJS'
-description: 'This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.'
-layout: Doc
-framework: v4
-platform: AWS
-language: nodeJS
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, Inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
+# NAT20 - D&D Campaign Management Service
 
-# Serverless Framework Node HTTP API on AWS
+A serverless application built with AWS Lambda for managing D&D campaigns and user authentication.
 
-This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.
+## Overview
 
-This template does not include any kind of persistence (database). For more advanced examples, check out the [serverless/examples repository](https://github.com/serverless/examples/) which includes Typescript, Mongo, DynamoDB and other examples.
+NAT20 is a serverless application that provides authentication and campaign management functionality for D&D players and Dungeon Masters. Built using AWS Lambda, Cognito, and API Gateway.
 
-## Usage
+## Architecture
 
-### Deployment
+- Runtime: Node.js 20.x
+- Region: us-east-1
+- Memory: 1024MB
+- Timeout: 30 seconds
 
-In order to deploy the example, you need to run the following command:
+## Features
 
+### Authentication Endpoints
+- `POST /users` - Create new user account
+- `POST /login` - Sign in user
+- `POST /logout` - Sign out user
+- `GET /current_user` - Get current active user
+
+### Campaign Endpoints
+- `POST /campaigns` - Create new campaign
+- `GET /campaigns/{id}` - Get specific campaign
+- `GET /campaigns` - Get all DM's campaigns
+
+## Configuration
+
+### Required Environment Variables
 ```
+USER_POOL_ID
+USER_POOL_CLIENT_ID
+IDENTITY_POOL_ID
+verification_method
+DB_NAME
+DB_HOST
+DB_PORT
+DB_USER
+DB_PASSWORD
+aws_account_id
+```
+
+### IAM Permissions
+The service requires the following Cognito permissions:
+- cognito-idp:AdminInitiateAuth
+- cognito-idp:AdminCreateUser
+- cognito-idp:AdminConfirmSignUp
+- cognito-idp:AdminSetUserPassword
+- cognito-idp:AdminGetUser
+- cognito-idp:AdminUpdateUserAttributes
+
+## CORS
+All endpoints have CORS enabled with:
+- Origin: *
+- Max Age: 86400 seconds
+
+## Deployment
+The service uses serverless framework for deployment. Deploy using:
+```bash
 serverless deploy
 ```
 
-After running deploy, you should see output similar to:
+## Package Configuration
+- Individual packaging: disabled
+- Excludes all files by default except:
+  - src directory
+  - .env file
 
-```
-Deploying "serverless-http-api" to stage "dev" (us-east-1)
-
-✔ Service deployed to stack serverless-http-api-dev (91s)
-
-endpoint: GET - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/
-functions:
-  hello: serverless-http-api-dev-hello (1.6 kB)
-```
-
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [HTTP API (API Gateway V2) event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api).
-
-### Invocation
-
-After successful deployment, you can call the created application via HTTP:
-
-```
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/
-```
-
-Which should result in response similar to:
-
-```json
-{ "message": "Go Serverless v4! Your function executed successfully!" }
-```
-
-### Local development
-
-The easiest way to develop and test your function is to use the `dev` command:
-
-```
-serverless dev
-```
-
-This will start a local emulator of AWS Lambda and tunnel your requests to and from AWS Lambda, allowing you to interact with your function as if it were running in the cloud.
-
-Now you can invoke the function as before, but this time the function will be executed locally. Now you can develop your function locally, invoke it, and see the results immediately without having to re-deploy.
-
-When you are done developing, don't forget to run `serverless deploy` to deploy the function to the cloud.
+## Organization
+- Organization: 12jikan
+- Service Name: nat20
