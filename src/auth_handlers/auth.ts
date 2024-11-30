@@ -156,6 +156,7 @@ export const create_account = async (event) => {
 export const signin_user = async (event) => {
   const client: CognitoIdentityProviderClient = new CognitoIdentityProviderClient({});
   const user_info: any = JSON.parse(event.body);
+  console.log("user signin:", user_info);
 
   try {
     const command: AdminInitiateAuthCommand = new AdminInitiateAuthCommand({

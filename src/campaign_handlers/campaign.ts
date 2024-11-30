@@ -1,14 +1,15 @@
 import { Client, Pool, PoolClient, QueryResult } from "pg";
 
 interface Campaign {
-    dm_id: string;
-    title: string;
-    start_date: string;
+    id: string;
+    campaign_name: string;
     description: string;
-    current_players: any[];
+    start_date: string;
+    dm_id: string;
     private_campaign: boolean;
-    date_created: string;
-    date_modified: string;
+    active_campaign: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 const get_db_pool = () => new Pool({
@@ -28,18 +29,15 @@ export const create_campaign = async (event) => {
 
     try {
         const user_data: Campaign = {
-            dm_id: campaign_data.dm_id,
-            title: campaign_data.title,
-            start_date: campaign_data.start_date,
+            id: "",
+            campaign_name: campaign_data.title,
             description: campaign_data.description,
-            current_players: [
-                campaign_data.dm_id,
-                campaign_data.dm_id,
-                campaign_data.dm_id
-            ],
+            start_date: campaign_data.start_date,
+            dm_id: campaign_data.dm_id,
             private_campaign: campaign_data.private_campaign,
-            date_created: new Date().toISOString(),
-            date_modified: new Date().toISOString()
+            active_campaign: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
         await add_campaign_to_db(_pool, user_data);
 
@@ -149,27 +147,33 @@ async function add_campaign_to_db(pool: Pool, user_data: Campaign) {
     console.log("client", client);
     console.log("campaign data:", user_data);
 
+    // interface Campaign {
+    //     id: string;
+    //     campaign_name: string;
+    //     description: string;
+    //     start_date: string;
+    //     dm_id: string;
+    //     private_campaign: boolean;
+    //     active_campaign: boolean;
+    //     created_at: string;
+    //     updated_at: string;
+    // }
+
     try {
         const _query = `INSERT INTO Nat20.campaigns (
-        dm_id,
-        title,
-        start_date,
-        description,
-        current_players,
-        private_campaign,
-        date_created,
-        date_modified
+            campaign_name,
+            description,
+            start_date,
+            dm_id,
+            private_campaign,
         ) VALUES($1, $2, $3, $4, $5, $6, $7, $7) RETURNING *`;
 
         const timestamp = new Date().toISOString();
         const _values = [
-            user_data.dm_id,
-            user_data.title,
-            user_data.start_date,
+            user_data.campaign_name,
             user_data.description,
-            user_data.current_players,
-            user_data.private_campaign,
-            timestamp
+            user_data.start_date,
+            user_data.dm_id,
         ];
 
         const _res = await client.query(_query, _values);
